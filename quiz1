@@ -1,0 +1,218 @@
+using System;
+
+class Program
+{
+    static void Main()
+    {
+        Console.Write("Enter the number of cities : ");
+        int numCity = int.Parse(Console.ReadLine());
+        City[] cities = new City[numCity];
+
+        for (int cityId = 0; cityId < numCity; cityId++)
+        {
+            City city = new City();
+
+            while (true)
+            {
+                Console.Write($"Enter the name of city {cityId}: ");
+                string cityName = Console.ReadLine();
+
+                if (!CityExists(cityName, cities, cityId))
+                {
+                    city.Name = cityName;
+                    break;
+                }
+                else
+                {
+                    Console.WriteLine("");
+                }
+            }
+
+            while (true)
+            {
+                Console.Write($"Enter the number of cities that {city.Name} : ");
+                int numContacts = int.Parse(Console.ReadLine());
+
+                if (numContacts >= 0)
+                {
+                    city.Contacts = new int[numContacts];
+
+                    for (int i = 0; i < numContacts; i++)
+                    {
+                        while (true)
+                        {
+                            Console.Write($"Enter the city number that {city.Name} contacts ({i + 1}/{numContacts}): ");
+                            int contactCityId = int.Parse(Console.ReadLine());
+
+                            if (contactCityId != cityId || contactCityId >= 0 || contactCityId < numCity)
+                            {
+                                if (!ArrayContains(city.Contacts, contactCityId))
+                                {
+                                    city.Contacts[i] = contactCityId;
+                                    
+                                    break;
+                                }
+                                else
+                                {
+                                    Console.WriteLine("Invalid ID.");
+                                }
+                            }
+                            else
+                            {
+                                Console.WriteLine("Invalid ID.");
+                            }
+                        }
+                    }
+                    break;
+                }
+                else
+                {
+                    Console.WriteLine("Invalid number of contacts. Please enter again :.");
+                }
+            }
+
+            cities[cityId] = city;
+        }
+
+        Console.WriteLine("City Number\tCity Name\tCOVID-19 Events");
+        for (int i = 0; i < cities.Length; i++)
+        {
+            Console.WriteLine($"{i}\t\t{cities[i].Name}\t\t{GetCovidEventText(cities[i].CovidLevel)}");
+        }
+
+        while (true)
+        {
+            Console.Write("Enter the event ('Outbreak', 'Vaccine', 'LockDown', 'Spread'): ");
+            string eventText = Console.ReadLine();
+
+            if (eventText == "Outbreak" || eventText == "Vaccine" || eventText == "LockDown")
+            {
+                Console.Write("Enter the city number where the event occurred: ");
+                int eventCityId = int.Parse(Console.ReadLine());
+
+                if (eventCityId >= 0 && eventCityId < numCity)
+                {
+                    PerformEvent(eventText, eventCityId, cities);
+                    Console.WriteLine("Event processed successfully.");
+                }
+                else
+                {
+                    Console.WriteLine("Invalid city number. Please enter a valid city number.");
+                }
+            }
+            else if (eventText == "Spread")
+            {
+                SpreadCovid(cities);
+                Console.WriteLine("COVID-19 spread across cities.");
+            }
+            else if (eventText == "Exit")
+            {
+                break;
+            }
+            else
+            {
+                Console.WriteLine("Invalid event. Please enter a valid event.");
+            }
+        }
+    }
+    static bool CityExists(string cityName, City[] cities, int currentCityId)
+    {
+        foreach (City city in cities)
+        {
+            if (city != null && city.Name == cityName && city.Id != currentCityId)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    static bool ArrayContains(int[] array, int value)
+    {
+        foreach (int item in array)
+        {
+            if (item == value)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    static void PerformEvent(string eventType, int cityId, City[] cities)
+    {
+        if (eventType == "Outbreak")
+        {
+            City city = cities[cityId];
+            city.CovidLevel = Math.Min(city.CovidLevel + 2, 3); // Increase COVID-19 level by 2, capped at 3
+
+            // Increase COVID-19 level of contacted cities by 1
+            foreach (int contactCityId in city.Contacts)
+            {
+                City contactCity = cities[contactCityId];
+                contactCity.CovidLevel = Math.Min(contactCity.CovidLevel + 1, 3);
+            }
+        }
+        else if (eventType == "Vaccine")
+        {
+            cities[cityId].CovidLevel = 0; // Set COVID-19 level to 0
+        }
+    }
+
+    static void SpreadCovid(City[] cities)
+    {
+        bool spreadOccurred = true;
+
+        while (spreadOccurred)
+        {
+            spreadOccurred = false;
+
+            foreach (City city in cities)
+            {
+                if (city == null) continue;
+
+                foreach (int contactCityId in city.Contacts)
+                {
+                    City contactCity = cities[contactCityId];
+
+                    if (contactCity.CovidLevel > city.CovidLevel)
+                    {
+                        city.CovidLevel = contactCity.CovidLevel;
+                        spreadOccurred = true;
+                    }
+                }
+            }
+        }
+    }
+
+    class City
+    {
+        public string Name { get; set; }
+        public int[] Contacts { get; set; }
+        public int CovidLevel { get; set; }
+        public int Id { get; set; }
+
+        public City()
+        {
+            Contacts = new int[0];
+            CovidLevel = 0;
+        }
+    }
+
+    static string GetCovidEventText(int covidLevel)
+    {
+        switch (covidLevel)
+        {
+            case 0:
+                return "No outbreak";
+            case 1:
+                return "Low outbreak";
+            case 2:
+                return "Moderate outbreak";
+            case 3:
+                return "High outbreak";
+            default:
+                return "Unknown";
+        }
+    }
+}
